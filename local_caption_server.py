@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from PIL import Image
 import torch
 from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+from qwen_vl_utils import process_vision_info
 
 app = FastAPI()
 
@@ -25,10 +26,10 @@ MODEL_ID = "Qwen/Qwen2-VL-7B-Instruct"
 
 print(f"Loading model {MODEL_ID}... This may take a while.")
 try:
-    # Load model in bfloat16 to save VRAM, requires a modern GPU (Ampere+)
+    # Load model in float16 to save VRAM, compatible with all modern Nvidia GPUs
     model = Qwen2VLForConditionalGeneration.from_pretrained(
         MODEL_ID, 
-        torch_dtype=torch.bfloat16, 
+        torch_dtype=torch.float16, 
         device_map="auto"
     )
     processor = AutoProcessor.from_pretrained(MODEL_ID)

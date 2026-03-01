@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { UploadCloud, Image as ImageIcon, CheckCircle, AlertTriangle, Settings, Download, Trash2, RefreshCw } from "lucide-react";
 import { processImage } from "./utils/imageProcessing";
+import { applyColorGrade, ColorGradeStyle } from "./utils/colorGrading";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
@@ -11,11 +12,12 @@ type ProcessedImage = {
   originalUrl: string;
   processedUrl: string;
   processedBlob: Blob;
+  croppedBlob: Blob;
   hasFace: boolean;
   flagged: boolean;
   score?: number;
   caption?: string;
-  isOutlier?: boolean;
+  ignored?: boolean;
 };
 
 const RESOLUTIONS = [512, 768, 1024, 1280];
@@ -58,6 +60,10 @@ export default function App() {
   // Curation State
   const [baseModel, setBaseModel] = useState<string>(BASE_MODELS[0]);
   const [isCurating, setIsCurating] = useState(false);
+  const [curationThreshold, setCurationThreshold] = useState<number>(60);
+  const [curationPage, setCurationPage] = useState<number>(1);
+  const [colorGrade, setColorGrade] = useState<ColorGradeStyle>("original");
+  const [isColorGrading, setIsColorGrading] = useState(false);
 
   // Caption State
   const [captionEngine, setCaptionEngine] = useState<string>(CAPTION_ENGINES[0]);
@@ -85,6 +91,7 @@ export default function App() {
           originalUrl: URL.createObjectURL(file),
           processedUrl: url,
           processedBlob: blob,
+          croppedBlob: blob,
           hasFace,
           flagged,
         });
@@ -127,10 +134,34 @@ export default function App() {
       const img = updatedImages[i];
       // Mock scoring based on face detection and random variance
       img.score = img.hasFace ? 80 + Math.random() * 20 : 50 + Math.random() * 30;
-      img.isOutlier = img.score < 60;
+      img.ignored = false;
     }
     setImages(updatedImages);
     setIsCurating(false);
+    setCurationPage(1);
+  };
+
+  const toggleIgnore = (id: string) => {
+    setImages(prev => prev.map(img => img.id === id ? { ...img, ignored: !img.ignored } : img));
+  };
+
+  const handleColorGrade = async (style: ColorGradeStyle) => {
+    setColorGrade(style);
+    setIsColorGrading(true);
+    
+    const updatedImages = [...images];
+    for (let i = 0; i < updatedImages.length; i++) {
+      try {
+        const newBlob = await applyColorGrade(updatedImages[i].croppedBlob, style);
+        updatedImages[i].processedBlob = newBlob;
+        updatedImages[i].processedUrl = URL.createObjectURL(newBlob);
+      } catch (err) {
+        console.error("Failed to color grade image", err);
+      }
+    }
+    
+    setImages(updatedImages);
+    setIsColorGrading(false);
   };
 
   const handleCaptioning = async () => {
@@ -139,7 +170,8 @@ export default function App() {
     
     for (let i = 0; i < updatedImages.length; i++) {
       const img = updatedImages[i];
-      if (img.isOutlier) continue; // Skip outliers if they weren't removed
+      const isOutlier = img.score !== undefined && img.score < curationThreshold && !img.ignored;
+      if (isOutlier) continue; // Skip outliers if they weren't removed
       
       try {
         // Convert blob to base64
@@ -194,7 +226,7 @@ export default function App() {
     setIsExporting(true);
     const zip = new JSZip();
     
-    const validImages = images.filter(img => !img.isOutlier);
+    const validImages = images.filter(img => !(img.score !== undefined && img.score < curationThreshold && !img.ignored));
     
     for (let i = 0; i < validImages.length; i++) {
       const img = validImages[i];
@@ -477,51 +509,146 @@ export default function App() {
               </div>
 
               {images.some(img => img.score !== undefined) && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-amber-400 flex items-center gap-2">
-                      <AlertTriangle className="w-5 h-5" />
-                      Pruning Gallery (Outliers)
-                    </h3>
-                    <button
-                      onClick={() => setStep(3)}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Proceed to Captioning
-                    </button>
+                <div className="space-y-6">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium text-zinc-200 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-indigo-400" />
+                        Dataset Grading & Color
+                      </h3>
+                      <button
+                        onClick={() => setStep(3)}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Proceed to Captioning
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-2 pb-4 border-b border-zinc-800">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-zinc-400">Minimum Score Threshold</span>
+                        <span className="font-mono text-indigo-400">{curationThreshold}</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={curationThreshold} 
+                        onChange={(e) => setCurationThreshold(Number(e.target.value))}
+                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                      />
+                      <p className="text-xs text-zinc-500">
+                        Images below this score are highlighted in red and will be excluded from captioning unless ignored.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-zinc-300">Automatic Color Grading</h4>
+                        {isColorGrading && <RefreshCw className="w-4 h-4 text-indigo-400 animate-spin" />}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(["original", "realistic", "anime", "cinematic", "vintage"] as ColorGradeStyle[]).map((style) => (
+                          <button
+                            key={style}
+                            onClick={() => handleColorGrade(style)}
+                            disabled={isColorGrading}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                              colorGrade === style
+                                ? "bg-indigo-600 text-white"
+                                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                            } disabled:opacity-50`}
+                          >
+                            {style}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-zinc-500">
+                        Apply a uniform color grade to all images to improve consistency in your dataset.
+                      </p>
+                    </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {images.filter(img => img.isOutlier).map((img) => (
-                      <div key={img.id} className="relative aspect-square bg-zinc-900 rounded-xl overflow-hidden border-2 border-amber-500/50">
-                        <img src={img.processedUrl} alt="Outlier" className="w-full h-full object-cover opacity-75" />
-                        <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-xs font-mono text-amber-400">
-                          Score: {img.score?.toFixed(0)}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {images.slice((curationPage - 1) * 25, curationPage * 25).map((img) => {
+                      const isRed = img.score! < curationThreshold;
+                      const isYellow = img.score! >= curationThreshold && img.score! < curationThreshold + 15;
+                      const isGreen = img.score! >= curationThreshold + 15;
+                      
+                      let borderColor = "border-green-500/50";
+                      let badgeColor = "bg-green-500/20 text-green-400";
+                      if (isRed) {
+                        borderColor = "border-red-500/80";
+                        badgeColor = "bg-red-500/20 text-red-400";
+                      } else if (isYellow) {
+                        borderColor = "border-yellow-500/50";
+                        badgeColor = "bg-yellow-500/20 text-yellow-400";
+                      }
+
+                      if (img.ignored) {
+                        borderColor = "border-zinc-500/50";
+                        badgeColor = "bg-zinc-500/20 text-zinc-400";
+                      }
+
+                      return (
+                        <div key={img.id} className={`group relative aspect-square bg-zinc-900 rounded-xl overflow-hidden border-2 ${borderColor} transition-colors`}>
+                          <img src={img.processedUrl} alt="Curated" className={`w-full h-full object-cover transition-opacity ${isRed && !img.ignored ? 'opacity-40' : 'opacity-100'}`} />
+                          
+                          <div className={`absolute top-2 left-2 px-2 py-1 backdrop-blur-md rounded text-xs font-mono font-bold ${badgeColor}`}>
+                            {img.score?.toFixed(0)}
+                          </div>
+
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                            <button
+                              onClick={() => removeImage(img.id)}
+                              className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                            >
+                              <Trash2 className="w-4 h-4" /> Delete
+                            </button>
+                            
+                            {isRed && !img.ignored && (
+                              <button
+                                onClick={() => toggleIgnore(img.id)}
+                                className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg text-xs font-medium transition-colors"
+                              >
+                                Keep Image
+                              </button>
+                            )}
+                            {img.ignored && (
+                              <button
+                                onClick={() => toggleIgnore(img.id)}
+                                className="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg text-xs font-medium transition-colors"
+                              >
+                                Un-keep
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="absolute bottom-2 left-2 right-2 flex gap-2">
-                          <button
-                            onClick={() => removeImage(img.id)}
-                            className="flex-1 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-medium transition-colors"
-                          >
-                            Remove
-                          </button>
-                          <button
-                            onClick={() => {
-                              setImages(prev => prev.map(i => i.id === img.id ? { ...i, isOutlier: false } : i));
-                            }}
-                            className="flex-1 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded text-xs font-medium transition-colors"
-                          >
-                            Keep
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {images.filter(img => img.isOutlier).length === 0 && (
-                      <div className="col-span-full p-8 text-center text-zinc-500 border border-zinc-800 border-dashed rounded-xl">
-                        No outliers detected. Your dataset looks clean!
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
+
+                  {Math.ceil(images.length / 25) > 1 && (
+                    <div className="flex items-center justify-center gap-4 pt-4">
+                      <button 
+                        onClick={() => setCurationPage(p => Math.max(1, p - 1))}
+                        disabled={curationPage === 1}
+                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-sm text-zinc-400 font-medium">
+                        Page {curationPage} of {Math.ceil(images.length / 25)}
+                      </span>
+                      <button 
+                        onClick={() => setCurationPage(p => Math.min(Math.ceil(images.length / 25), p + 1))}
+                        disabled={curationPage === Math.ceil(images.length / 25)}
+                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

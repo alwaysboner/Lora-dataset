@@ -1,87 +1,68 @@
 # LoRA Dataset Architect
 
-A comprehensive tool for cropping, curating, and captioning image datasets for LoRA training.
+A comprehensive tool for cropping, curating, and captioning image datasets for AI image training (LoRA).
 
-This application runs **100% locally** and offline. It uses open-source vision models (like Qwen2-VL) to automatically caption your images, ensuring your data never leaves your computer.
-
----
-
-## 🚀 One-Click Install & Setup Guide
-
-Since this app runs powerful AI models locally, it requires a dedicated Nvidia GPU and a Python environment. Follow these steps carefully to get everything running.
-
-### Prerequisites
-
-1. **Nvidia GPU**: You need an Nvidia GPU with at least 8GB of VRAM (12GB+ recommended).
-2. **Python 3.10 or 3.11**: Download and install from [python.org](https://www.python.org/downloads/).
-   - ⚠️ **CRITICAL:** During the Python installation, you **MUST** check the box at the bottom that says **"Add Python to PATH"** before clicking Install.
-3. **Git**: Download and install from [git-scm.com](https://git-scm.com/downloads).
-4. **Node.js**: Download and install from [nodejs.org](https://nodejs.org/) (required to run the user interface).
+This application runs **100% locally** and offline. It uses open-source vision models (like Qwen2-VL) to automatically caption your images, ensuring your private data never leaves your computer.
 
 ---
 
-### Step 1: Install the Local AI Server (Python)
+## 🚀 The "One-Click" Install & Setup Guide
 
-The AI server handles the heavy lifting of looking at your images and generating captions.
+Since this app runs powerful AI models locally on your own hardware, it requires a dedicated Nvidia GPU and a few basic programs installed on your computer. 
 
-1. Open your terminal (Command Prompt or PowerShell on Windows).
-2. Navigate to the folder where you extracted this project.
-3. Install PyTorch with CUDA support (this allows Python to use your Nvidia GPU):
-   ```bash
-   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-   ```
-4. Install the required AI libraries:
-   ```bash
-   pip install fastapi uvicorn transformers pillow accelerate qwen-vl-utils
-   ```
+Don't worry if you aren't computer savvy! Just follow these steps exactly.
 
-### Step 2: Start the AI Server
+### Step 1: Install the Prerequisites (Do this once)
 
-In the same terminal, run the following command to start the AI server:
+Before you can run the app, your computer needs to know how to read the code. You need to install three standard programs:
 
-```bash
-python local_caption_server.py
-```
+1. **Python (The brain)**: 
+   - Go to [python.org/downloads](https://www.python.org/downloads/) and download Python 3.10 or 3.11.
+   - ⚠️ **CRITICAL STEP:** When you open the Python installer, look at the very bottom of the window. You **MUST** check the box that says **"Add Python to PATH"** before you click Install. If you miss this, the app will not work!
+2. **Node.js (The user interface)**: 
+   - Go to [nodejs.org](https://nodejs.org/) and download the "LTS" (Long Term Support) version. Install it normally (just keep clicking Next).
+3. **Git (The downloader)**: 
+   - Go to [git-scm.com/downloads](https://git-scm.com/downloads) and download it for your operating system. Install it normally (just keep clicking Next).
 
-**What happens next?**
-- The first time you run this, it will automatically download the `Qwen2-VL-7B-Instruct` model. 
-- You do **not** need to manually download any files from HuggingFace or figure out where to put them. The script handles it automatically!
-- *Note: The download is about 15GB, so it may take a while depending on your internet speed.*
-- Once it finishes downloading and loading into your GPU, you will see a message saying: `Uvicorn running on http://0.0.0.0:8000`. Leave this terminal window open!
+### Step 2: Run the App!
 
-### Step 3: Start the User Interface (React)
+Once you have installed the three programs above, you are ready to start the app.
 
-Now that the AI server is running in the background, you need to start the visual app.
+**If you are on Windows:**
+1. Open the folder where you saved this project.
+2. Double-click the file named `start_windows.bat`.
+3. A black terminal window will open. It will automatically download all the necessary AI files and start the server. 
+   - *Note: The very first time you run this, it will download the AI model (about 15GB). This may take 10-30 minutes depending on your internet speed. Be patient!*
+4. A second black window will pop up for the AI server. **Leave both black windows open.**
+5. Open your web browser (Chrome, Edge, etc.) and go to the web address shown in the terminal (usually `http://localhost:5173` or `http://localhost:3000`).
 
-1. Open a **new** terminal window (keep the Python one running).
-2. Navigate to the project folder again.
-3. Install the UI dependencies:
-   ```bash
-   npm install
-   ```
-4. Start the UI:
-   ```bash
-   npm run dev
-   ```
-5. Open your web browser and go to `http://localhost:3000`.
+**If you are on Mac or Linux:**
+1. Open your Terminal.
+2. Navigate to the folder where you saved this project.
+3. Run this command to make the script executable: `chmod +x start_mac_linux.sh`
+4. Run the script: `./start_mac_linux.sh`
+5. Open your web browser and go to the web address shown in the terminal.
 
 ---
 
-## ⚙️ App Configuration
+## ⚙️ How to Use the App
 
-1. In the web app, click the **Settings** gear icon in the top right corner.
-2. Ensure the **Local API URL** is set to `http://localhost:8000` (this tells the UI where to find your Python server).
-3. Close the settings. You are now ready to drag and drop your images and start captioning!
+1. **Settings**: In the web app, click the **Settings** gear icon in the top right corner. Ensure the **Local API URL** is set to `http://localhost:8000`. Close the settings.
+2. **Import**: Drag and drop your images into the app. It will automatically detect faces and crop them perfectly into squares.
+3. **Curate**: The app will grade your images. You can use the slider to set a minimum score. Images below the score turn red and will be ignored. You can also apply an automatic color grade (like "Cinematic" or "Realistic") to make all your photos match!
+4. **Caption**: Click "Generate Captions". The AI running in your black terminal window will look at every photo and write a detailed description of it.
+5. **Export**: Click "Export Dataset". You will get a `.zip` file containing all your perfectly cropped images and their matching text files, ready to be uploaded to a LoRA trainer!
 
 ---
 
-## 🛠️ Troubleshooting
+## 🛠️ Troubleshooting (Common Errors)
 
-- **"CUDA out of memory"**: Your GPU doesn't have enough VRAM to load the 7B parameter model. 
-  - *Fix:* Open `local_caption_server.py` in a text editor. Change `MODEL_ID = "Qwen/Qwen2-VL-7B-Instruct"` to `MODEL_ID = "Qwen/Qwen2-VL-2B-Instruct"`. Save the file and restart the Python server. The 2B model is much smaller and fits on almost any GPU.
-- **"Connection Refused" / "Local API failed" in the web app**: 
-  - *Fix:* This means the web app can't talk to the Python server. Ensure the Python script is actually running in your other terminal window and hasn't crashed. Ensure the URL in the app settings exactly matches `http://localhost:8000`.
-- **"pip is not recognized as an internal or external command"**: 
-  - *Fix:* You forgot to check the "Add Python to PATH" box when installing Python. Re-run the Python installer, select "Modify", and check that box.
-- **"ModuleNotFoundError: No module named 'fastapi'"**: 
-  - *Fix:* You didn't run the `pip install` commands, or you ran them in a different environment. Run the installation commands from Step 1 again.
+- **"CUDA out of memory" in the black window**: 
+  - *What it means:* Your graphics card (GPU) doesn't have enough memory (VRAM) to load the large AI model. 
+  - *How to fix it:* Open the file named `local_caption_server.py` in Notepad. Look for line 24 that says `MODEL_ID = "Qwen/Qwen2-VL-7B-Instruct"`. Change the `7B` to `2B` so it looks like this: `MODEL_ID = "Qwen/Qwen2-VL-2B-Instruct"`. Save the file and double-click `start_windows.bat` again. The 2B model is much smaller and fits on almost any GPU.
+- **"Connection Refused" or "Local API failed" in the web app**: 
+  - *What it means:* The web app can't talk to the Python AI server. 
+  - *How to fix it:* Ensure the second black terminal window (the one running Python) is actually open and hasn't crashed. Ensure the URL in the app settings exactly matches `http://localhost:8000`.
+- **"python is not recognized as an internal or external command"**: 
+  - *What it means:* You forgot to check the "Add Python to PATH" box when installing Python. 
+  - *How to fix it:* Re-run the Python installer you downloaded, select "Modify", and make sure that box is checked.
