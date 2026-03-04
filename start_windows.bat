@@ -84,5 +84,5 @@ echo Starting Python AI Server in a new window...
 start cmd /k "title AI Caption Server && call venv\Scripts\activate && echo Starting AI Server... && python local_caption_server.py"
 
 echo Starting React UI Server...
-echo Once it says "ready", open your browser to http://localhost:5173 (or the URL shown below)
+echo Once it says "ready", open your browser to http://localhost:3000 (or the URL shown below)
 call npm run dev

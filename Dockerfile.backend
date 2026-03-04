@@ -1,0 +1,12 @@
+FROM pytorch/pytorch:2.2.1-cuda12.1-cudnn8-runtime
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install torchvision torchaudio fastapi uvicorn transformers pillow accelerate qwen-vl-utils
+
+# Copy the server file
+COPY local_caption_server.py .
+
+# Run the server
+CMD ["python", "local_caption_server.py"]

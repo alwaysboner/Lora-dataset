@@ -52,7 +52,7 @@ python3 local_caption_server.py &
 PYTHON_PID=$!
 
 echo "Starting React UI Server..."
-echo "Open your browser to the URL shown below (usually http://localhost:5173)"
+echo "Open your browser to the URL shown below (usually http://localhost:3000)"
 npm run dev
 
 # Cleanup when script is terminated

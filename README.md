@@ -29,12 +29,10 @@ If you've ever trained a LoRA, you know that prepping the dataset is the most te
 
 ## 📸 Screenshots
 
-<img width="1357" height="965" alt="image" src="https://github.com/user-attachments/assets/6077b3e4-cf91-4671-8b52-33ad27e17f12" />
-<img width="1371" height="989" alt="image" src="https://github.com/user-attachments/assets/b28076e5-124a-48e7-88cb-82f8ac8ff37f" />
-<img width="1303" height="851" alt="image" src="https://github.com/user-attachments/assets/d352897f-b748-434d-ba49-21e23538dd77" />
-<img width="1358" height="1118" alt="image" src="https://github.com/user-attachments/assets/869dac61-4565-4d8f-8821-d58a198d76e6" />
-<img width="1406" height="998" alt="image" src="https://github.com/user-attachments/assets/2954ee9a-81d4-4572-96f2-ec7e2380961e" />
-<img width="1313" height="1055" alt="image" src="https://github.com/user-attachments/assets/1744c92a-3f11-41c2-930a-06e13001c1e4" />
+*(Add your screenshots here! Just drag and drop images into GitHub while editing this file to upload them.)*
+
+![Screenshot 1 Placeholder](https://via.placeholder.com/800x400.png?text=Step+1:+Import+and+Crop)
+![Screenshot 2 Placeholder](https://via.placeholder.com/800x400.png?text=Step+3:+Live+Captioning+with+Qwen2-VL)
 
 ---
 
@@ -67,9 +65,29 @@ The script will automatically create an isolated environment and download everyt
 * ☕ **Grab a coffee!** The first time you run this, it has to download the PyTorch machine learning library and the Qwen2-VL AI model. This is about **15GB of data** and can take a while depending on your internet speed.
 * Once it finishes, two things will happen:
   1. A black terminal window will stay open (this is your AI brain running in the background).
-  2. A browser window will automatically open to `http://localhost:5173` (this is the user interface).
+  2. A browser window will automatically open to `http://localhost:3000` (this is the user interface).
 
 *(Note: In the future, when you run the start script, it will launch almost instantly since everything is already downloaded!)*
+
+---
+
+## 🐳 Running with Docker (Advanced)
+
+If you prefer to keep your host system clean and already have Docker installed with NVIDIA GPU support, you can run the entire application using Docker Compose.
+
+### Prerequisites
+1. **Docker** and **Docker Compose** installed.
+2. **NVIDIA Container Toolkit** installed and configured so Docker can access your GPU.
+
+### How to Run
+1. Open your terminal in the project folder.
+2. Run the following command:
+   ```bash
+   docker-compose up --build
+   ```
+3. The first time you run this, it will download the PyTorch image and install dependencies.
+4. Once it says the server is running, open your browser to `http://localhost:3000`.
+5. In the app's settings (gear icon), ensure the **Local API URL** is set to `http://localhost:8000`.
 
 ---
 

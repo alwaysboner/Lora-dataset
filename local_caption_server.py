@@ -91,5 +91,7 @@ async def generate_caption(request: CaptionRequest):
 
 if __name__ == "__main__":
     import uvicorn
+    import os
     # Run the server on port 8000
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    host = os.environ.get("HOST", "127.0.0.1")
+    uvicorn.run(app, host=host, port=8000)
